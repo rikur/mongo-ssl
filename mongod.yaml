@@ -1,0 +1,26 @@
+# mongod.conf
+
+# for documentation of all options, see:
+#   http://docs.mongodb.org/manual/reference/configuration-options/
+
+# log to STDOUT
+systemLog:
+  verbosity: 0
+
+# store everything under /data
+storage:
+  dbPath: /data
+  journal:
+    enabled: true
+
+# run in the foreground
+processManagement:
+  fork: false
+
+# bind to all interfaces, enable ssl
+net:
+  port: 27017
+  bindIp: 0.0.0.0
+  ssl:
+    mode: allowSSL
+    PEMKeyFile: /etc/mongod-snakeoil.pem

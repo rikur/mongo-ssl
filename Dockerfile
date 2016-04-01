@@ -11,26 +11,31 @@ RUN apt-get update && apt-get -y install \
   libboost-system-dev \
   libboost-thread-dev
 
-RUN mkdir -p /var/downloads \
-  && cd /var/downloads \
-  && git clone git://github.com/mongodb/mongo.git \
-  && cd /var/downloads/mongo \
-  && git checkout r2.6.5
+RUN apt-get install curl -qy
+
+ADD ./mongo /var/downloads/mongo
+
+WORKDIR /var/downloads/mongo
 
 RUN mkdir -p /usr/local/bin
-RUN cd /var/downloads/mongo \
- && scons mongod --64 --ssl -j8 --no-glibc-check --prefix=/usr/local \
- && cp /var/downloads/mongo/build/linux2/64/ssl/mongo/mongod /usr/local/bin \
- && rm -rf /var/downloads
+RUN git checkout r3.2.1
+RUN scons mongod --ssl -j8 --prefix=/usr/local
+RUN cp /var/downloads/mongo/build/opt/mongo/mongod /usr/local/bin && rm -rf /var/downloads
 
 RUN mkdir -p /data/db
-RUN mkdir -p /var/log/mongo.log
 
 EXPOSE 27017
-ENTRYPOINT ["/usr/local/bin/mongod", "--config", "/config/mongo.yaml"]
+CMD ["/usr/local/bin/mongod", "--config", "/etc/mongod.yaml"]
+
+# SSL key
+RUN openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -subj "/C=CA/ST=BC/L=Vancouver/O=Monstercat/CN=mongo.monstercat.com" -keyout /tmp/mongod-snakeoil-key.pem -out /tmp/mongod-snakeoil-cert.pem && cat /tmp/mongod-snakeoil-cert.pem /tmp/mongod-snakeoil-key.pem > /etc/mongod-snakeoil.pem
 
 # Cleanup
-RUN apt-get remove -y --purge git-core scons \
+RUN apt-get remove -y --purge git-core scons build-essential libssl-dev libboost-filesystem-dev libboost-program-options-dev libboost-system-dev libboost-thread-dev curl \
     && apt-get autoremove -y --purge \
     && apt-get clean autoclean \
     && rm -rf /var/lib/{apt,dpkg,cache,lists} /tmp/* /var/tmp/*
+
+ADD ./mongod.yaml /etc/mongod.yaml
+
+WORKDIR /
